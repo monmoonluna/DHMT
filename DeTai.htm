@@ -1,9 +1,55 @@
 <!doctype html>
 
 <html>
-
+    <head>
+        <title>WebGL Cube</title>
+        <style>
+            body {
+                display: flex;
+                flex-direction: row;
+            }
+    
+            #controls {
+                display: flex;
+                flex-direction: column;
+                margin-right: 20px;
+            }
+    
+            #matrices {
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+            }
+    
+            .matrix {
+                font-family: monospace;
+            }
+    
+            canvas {
+                margin-left: 20px;
+            }
+        </style>
+        
+    </head>
 <body>
-
+    <div id="controls">
+        <label for="sliderZoom">Zoom:</label>
+        <input type="range" id="sliderZoom" min="1" max="20" step="0.1" value="6">
+        <br>
+        <label for="sliderRotateX">Rotate X:</label>
+        <input type="range" id="sliderRotateX" min="0" max="360" step="1" value="0">
+        <br>
+        <label for="sliderRotateY">Rotate Y:</label>
+        <input type="range" id="sliderRotateY" min="0" max="360" step="1" value="0">
+        <br>
+        <label for="sliderRotateZ">Rotate Z:</label>
+        <input type="range" id="sliderRotateZ" min="0" max="360" step="1" value="0">
+    </div>
+    <div id="matrices">
+        <div class="matrix" id="projMatrixDisplay"></div>
+        <div class="matrix" id="viewMatrixDisplay"></div>
+        <div class="matrix" id="modelMatrixDisplay"></div>
+    </div>
     <canvas width="1513" height="1024" id="my_Canvas"></canvas>
     
 
@@ -291,50 +337,69 @@ m[10] = c*m[10]-s*mv8;
 }
 
 /*================= Drawing ===========================*/
+var sliderZoom = document.getElementById('sliderZoom');
+        var sliderRotateX = document.getElementById('sliderRotateX');
+        var sliderRotateY = document.getElementById('sliderRotateY');
+        var sliderRotateZ = document.getElementById('sliderRotateZ');
 
+        var projMatrixDisplay = document.getElementById('projMatrixDisplay');
+        var viewMatrixDisplay = document.getElementById('viewMatrixDisplay');
+        var modelMatrixDisplay = document.getElementById('modelMatrixDisplay');
+
+        function updateViewMatrix() {
+            view_matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
+            view_matrix[14] = -sliderZoom.value;
+            //viewMatrixDisplay.textContent = 'View Matrix:\n' + view_matrix.join(', ');
+            //viewMatrixDisplay.textContent = 'View Matrix:\n' + view_matrix.join(', ');
+        }
+        function matrixToString(matrix) {
+            let rows = [];
+            for (let i = 0; i < 4; i++) {
+                let row = matrix.slice(i * 4, i * 4 + 4);
+                rows.push(row.map(num => num.toFixed(2)).join(', '));
+            }
+            return rows.join('\n');
+        }
 var time_old = 0;
+function animate(time) {
+            var dt = time - time_old;
 
-var animate = function(time) {
+            var rotateXAngle = sliderRotateX.value * Math.PI / 180;
+            var rotateYAngle = sliderRotateY.value * Math.PI / 180;
+            var rotateZAngle = sliderRotateZ.value * Math.PI / 180;
 
-var dt = time-time_old;
+            mov_matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
+            rotateX(mov_matrix, rotateXAngle);
+            rotateY(mov_matrix, rotateYAngle);
+            rotateZ(mov_matrix, rotateZAngle);
 
+            updateViewMatrix();
 
+            time_old = time;
 
-rotateZ(mov_matrix, dt*0.005);//time
+            gl.enable(gl.DEPTH_TEST);
+            gl.depthFunc(gl.LEQUAL);
+            gl.clearColor(0.5, 0.5, 0.5, 0.9);
+            gl.clearDepth(1.0);
+            gl.enable(gl.CULL_FACE); // Enable culling
+            gl.cullFace(gl.BACK); // Cull back faces
+            gl.viewport(0.0, 0.0, canvas.width, canvas.height);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            gl.uniformMatrix4fv(Pmatrix, false, proj_matrix);
+            gl.uniformMatrix4fv(Vmatrix, false, view_matrix);
+            gl.uniformMatrix4fv(Mmatrix, false, mov_matrix);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+            gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
 
-rotateY(mov_matrix, dt*0.002);
+            //projMatrixDisplay.innerText = matrixToString(proj_matrix);
+        viewMatrixDisplay.textContent = 'Zoom Matrix:' + '\n' + matrixToString(view_matrix);
+        modelMatrixDisplay.textContent = 'Rotate Matrix:'+ '\n' + matrixToString(mov_matrix);
+        
+            window.requestAnimationFrame(animate);
+        }
 
-rotateX(mov_matrix, dt*0.003);
+        animate(0);
 
-time_old = time;
-
-gl.enable(gl.DEPTH_TEST);
-
-gl.depthFunc(gl.LEQUAL);
-
-gl.clearColor(0.5, 0.5, 0.5, 0.9);
-
-gl.clearDepth(1.0);
-
-gl.viewport(0.0, 0.0, canvas.width, canvas.height);
-
-gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-gl.uniformMatrix4fv(Pmatrix, false, proj_matrix);
-
-gl.uniformMatrix4fv(Vmatrix, false, view_matrix);
-
-gl.uniformMatrix4fv(Mmatrix, false, mov_matrix);
-
-gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
-
-gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
-
-window.requestAnimationFrame(animate);
-
-}
-
-animate(0);
 
 </script>
 
