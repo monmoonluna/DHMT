@@ -4,7 +4,8 @@
 
 <body>
 
-<canvas width = "1024" height = "1024" id = "my_Canvas"></canvas>
+    <canvas width="1513" height="1024" id="my_Canvas"></canvas>
+    
 
 <script>
 
@@ -17,26 +18,46 @@ gl = canvas.getContext('experimental-webgl');
 /*============ Defining and storing the geometry =========*/
 
 
-var a = prompt("Nhập cạnh của hình lập phương: ");
-a = parseInt(a);
+// Tính toán độ dài cạnh a (nhập từ bàn phím)
+var a = parseFloat(prompt("Nhập độ dài cạnh của hình lập phương:"));
 
+// Tạo vertex của hình lập phương
 var vertices = [
+    // Front face
+    -a, -a,  a,
+     a, -a,  a,
+     a,  a,  a,
+    -a,  a,  a,
 
-                0, 0, 0,
-                a, 0, 0,
-                a, a, 0,
-                0, a, 0,
-                // Mặt sau
-                0, 0, -a,
-                a, 0, -a,
-                a, a, -a,
-                0, a, -a,
-                // Các cạnh nối
-                0, 0, 0, 0, 0, -a,
-                a, 0, 0, a, 0, -a,
-                a, a, 0, a, a, -a,
-                0, a, 0, 0, a, -a
+    // Back face
+    -a, -a, -a,
+    -a,  a, -a,
+     a,  a, -a,
+     a, -a, -a,
 
+    // Top face
+    -a,  a, -a,
+    -a,  a,  a,
+     a,  a,  a,
+     a,  a, -a,
+
+    // Bottom face
+    -a, -a, -a,
+     a, -a, -a,
+     a, -a,  a,
+    -a, -a,  a,
+
+    // Right face
+     a, -a, -a,
+     a,  a, -a,
+     a,  a,  a,
+     a, -a,  a,
+
+    // Left face
+    -a, -a, -a,
+    -a, -a,  a,
+    -a,  a,  a,
+    -a,  a, -a
 ];
 
 var colors = [
@@ -279,11 +300,11 @@ var dt = time-time_old;
 
 
 
-//rotateZ(mov_matrix, dt*0.005);//time
+rotateZ(mov_matrix, dt*0.005);//time
 
-//rotateY(mov_matrix, dt*0.002);
+rotateY(mov_matrix, dt*0.002);
 
-//rotateX(mov_matrix, dt*0.003);
+rotateX(mov_matrix, dt*0.003);
 
 time_old = time;
 
