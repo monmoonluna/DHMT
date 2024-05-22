@@ -283,23 +283,29 @@ view_matrix[14] = view_matrix[14]-6;//zoom
 /*==================== Rotation ====================*/
 // Định nghĩa hàm để thực hiện phép chiếu song song
 function performParallelProjection() {
-    // Tính toán ma trận biến đổi của phép chiếu song song
-    proj_matrix = parallelProjection();
+    var centerX = parseFloat(centerXInput.value);
+    var centerY = parseFloat(centerYInput.value);
+    var centerZ = parseFloat(centerZInput.value);
 
-    // Hiển thị ma trận biến đổi trên trang HTML
+    proj_matrix = parallelProjection(centerX, centerY, centerZ);
+
+    // Update and display the projection matrix
+    gl.uniformMatrix4fv(Pmatrix, false, proj_matrix);
     projMatrixDisplay.textContent = 'Projection Matrix:\n' + matrixToString(proj_matrix);
+
+    drawScene();
 }
 
 
 // Lắng nghe sự kiện click trên button
 var projectionButton = document.getElementById('projectionButton');
 projectionButton.addEventListener('click', performParallelProjection);
-function parallelProjection() {
+function parallelProjection(centerX, centerY, centerZ) {
     var aspect = canvas.width / canvas.height;
-    var left = -a * aspect;
-    var right = a * aspect;
-    var bottom = -a;
-    var top = a;
+    var left = -a * aspect + centerX;
+    var right = a * aspect + centerX;
+    var bottom = -a + centerY;
+    var top = a + centerY;
     var near = 1;
     var far = 100;
 
@@ -446,7 +452,7 @@ function animate(time) {
             rotateZ(mov_matrix, rotateZAngle);
 
             updateViewMatrix();
-
+            
             time_old = time;
 
             gl.enable(gl.DEPTH_TEST);
