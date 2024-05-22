@@ -16,6 +16,7 @@
             }
     
             #matrices {
+
                 display: flex;
                 flex-direction: column;
                 gap: 20px;
@@ -44,6 +45,20 @@
         <br>
         <label for="sliderRotateZ">Rotate Z:</label>
         <input type="range" id="sliderRotateZ" min="0" max="360" step="1" value="0">
+        <br>
+        <button id="projectionButton">Chiếu</button>
+        <br>
+        <label for="fov">FOV (degrees):</label>
+<input type="number" id="fov" min="1" max="179" step="1" value="40">
+<br>
+        <label for="centerX">Center X:</label>
+        <input type="number" id="centerX" step="1" value="0">
+        <br>
+        <label for="centerY">Center Y:</label>
+        <input type="number" id="centerY" step="1" value="0">
+        <br>
+        <label for="centerZ">Center Z:</label>
+        <input type="number" id="centerZ" step="1" value="0">
     </div>
     <div id="matrices">
         <div class="matrix" id="projMatrixDisplay"></div>
@@ -241,24 +256,21 @@ gl.useProgram(shaderProgram);
 /*==================== MATRIX =====================*/
 
 function get_projection(angle, a, zMin, zMax) {
-
-var ang = Math.tan((angle*.5)*Math.PI/180);//angle*.5
-
-return [
-
-0.5/ang, 0 , 0, 0,
-
-0, 0.5*a/ang, 0, 0,
-
-0, 0, -(zMax+zMin)/(zMax-zMin), -1,
-
-0, 0, (-2*zMax*zMin)/(zMax-zMin), 0
-
-];
-
+    var ang = Math.tan((angle * 0.5) * Math.PI / 180); // angle * 0.5
+    return [
+        0.5 / ang, 0, 0, 0,
+        0, 0.5 * a / ang, 0, 0,
+        0, 0, -(zMax + zMin) / (zMax - zMin), -1,
+        0, 0, (-2 * zMax * zMin) / (zMax - zMin), 0
+    ];
 }
 
-var proj_matrix = get_projection(40, canvas.width/canvas.height, 1, 100);
+// Lấy góc FOV từ trường input
+var fovInput = document.getElementById('fov');
+var fov = parseFloat(fovInput.value);
+
+// Sử dụng góc FOV để tính toán ma trận chiếu
+var proj_matrix = get_projection(fov, canvas.width / canvas.height, 1, 100);
 
 var mov_matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
 
@@ -269,6 +281,39 @@ var view_matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
 view_matrix[14] = view_matrix[14]-6;//zoom
 
 /*==================== Rotation ====================*/
+// Định nghĩa hàm để thực hiện phép chiếu song song
+function performParallelProjection() {
+    // Tính toán ma trận biến đổi của phép chiếu song song
+    proj_matrix = parallelProjection();
+
+    // Hiển thị ma trận biến đổi trên trang HTML
+    projMatrixDisplay.textContent = 'Projection Matrix:\n' + matrixToString(proj_matrix);
+}
+
+
+// Lắng nghe sự kiện click trên button
+var projectionButton = document.getElementById('projectionButton');
+projectionButton.addEventListener('click', performParallelProjection);
+function parallelProjection() {
+    var aspect = canvas.width / canvas.height;
+    var left = -a * aspect;
+    var right = a * aspect;
+    var bottom = -a;
+    var top = a;
+    var near = 1;
+    var far = 100;
+
+    return ortho(left, right, bottom, top, near, far);
+}
+
+function ortho(left, right, bottom, top, near, far) {
+    return [
+        2 / (right - left), 0, 0, 0,
+        0, 2 / (top - bottom), 0, 0,
+        0, 0, -2 / (far - near), 0,
+        -(right + left) / (right - left), -(top + bottom) / (top - bottom), -(far + near) / (far - near), 1
+    ];
+}
 
 function rotateZ(m, angle) {
 
@@ -345,7 +390,32 @@ var sliderZoom = document.getElementById('sliderZoom');
         var projMatrixDisplay = document.getElementById('projMatrixDisplay');
         var viewMatrixDisplay = document.getElementById('viewMatrixDisplay');
         var modelMatrixDisplay = document.getElementById('modelMatrixDisplay');
+        var centerXInput = document.getElementById('centerX');
+    var centerYInput = document.getElementById('centerY');
+    var centerZInput = document.getElementById('centerZ');
 
+    centerXInput.addEventListener('input', updateProjection);
+    centerYInput.addEventListener('input', updateProjection);
+    centerZInput.addEventListener('input', updateProjection);
+
+    function updateProjection() {
+        // Lấy thông tin tâm chiếu từ trường input
+        var centerX = parseFloat(centerXInput.value);
+        var centerY = parseFloat(centerYInput.value);
+        var centerZ = parseFloat(centerZInput.value);
+
+        // Tính toán lại ma trận chiếu song song với tâm chiếu mới
+        proj_matrix = parallelProjection(centerX, centerY, centerZ);
+
+        // Cập nhật ma trận chiếu trên canvas
+        gl.uniformMatrix4fv(Pmatrix, false, proj_matrix);
+
+        // Hiển thị ma trận chiếu trên trang HTML
+        projMatrixDisplay.textContent = 'Projection Matrix:\n' + matrixToString(proj_matrix);
+
+        // Vẽ lại scene với ma trận chiếu mới
+        drawScene();
+    }
         function updateViewMatrix() {
             view_matrix = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
             view_matrix[14] = -sliderZoom.value;
@@ -363,7 +433,9 @@ var sliderZoom = document.getElementById('sliderZoom');
 var time_old = 0;
 function animate(time) {
             var dt = time - time_old;
-
+            fov = parseFloat(fovInput.value);
+    // Sử dụng góc FOV để tính toán lại ma trận chiếu
+    proj_matrix = get_projection(fov, canvas.width / canvas.height, 1, 100);
             var rotateXAngle = sliderRotateX.value * Math.PI / 180;
             var rotateYAngle = sliderRotateY.value * Math.PI / 180;
             var rotateZAngle = sliderRotateZ.value * Math.PI / 180;
